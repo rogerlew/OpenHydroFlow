@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About HydroFlow - Water Distribution Modeling</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Custom CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+          <i class="fas fa-water me-2"></i>HydroFlow
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="/about">About</a>
+            </li>
+          </ul>
+          <span class="navbar-text">
+            Madison, WI Water Distribution Model
+          </span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col-lg-8 mx-auto">
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h4 class="mb-0">About HydroFlow</h4>
+            </div>
+            <div class="card-body">
+              <h5>Overview</h5>
+              <p>
+                HydroFlow is an open-source web application for water
+                distribution network modeling using EPANET. It provides a
+                user-friendly interface for creating, analyzing, and visualizing
+                water distribution systems.
+              </p>
+
+              <h5 class="mt-4">Features</h5>
+              <ul>
+                <li>Automated data collection from open-source APIs</li>
+                <li>Integration with Madison, WI water infrastructure data</li>
+                <li>EPANET-based hydraulic modeling</li>
+                <li>Interactive network visualization</li>
+                <li>Time series analysis of simulation results</li>
+                <li>Scenario comparison and analysis</li>
+              </ul>
+
+              <h5 class="mt-4">Technology Stack</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Backend</h6>
+                  <ul>
+                    <li>Python</li>
+                    <li>Flask</li>
+                    <li>WNTR (Water Network Tool for Resilience)</li>
+                    <li>GeoPandas</li>
+                    <li>NumPy/Pandas</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h6>Frontend</h6>
+                  <ul>
+                    <li>HTML5/CSS3</li>
+                    <li>JavaScript</li>
+                    <li>Bootstrap 5</li>
+                    <li>Leaflet.js</li>
+                    <li>Chart.js</li>
+                  </ul>
+                </div>
+              </div>
+
+              <h5 class="mt-4">Data Sources</h5>
+              <p>HydroFlow uses the following open data sources:</p>
+              <ul>
+                <li>City of Madison, WI Open Data Portal</li>
+                <li>USGS National Water Information System</li>
+                <li>EPA SDWIS (Safe Drinking Water Information System)</li>
+                <li>USGS National Map API (for elevation data)</li>
+              </ul>
+
+              <h5 class="mt-4">How It Works</h5>
+              <p>HydroFlow follows a four-step workflow:</p>
+              <ol>
+                <li>
+                  <strong>Data Collection:</strong> Gathers water infrastructure
+                  GIS data, elevation data, water quality data, and monitoring
+                  station data from various APIs.
+                </li>
+                <li>
+                  <strong>Data Processing:</strong> Cleans and transforms the
+                  collected data into a format suitable for hydraulic modeling,
+                  including extracting pipe properties, junction elevations, and
+                  network connectivity.
+                </li>
+                <li>
+                  <strong>Network Modeling:</strong> Creates an EPANET water
+                  distribution model with all necessary components including
+                  pipes, junctions, reservoirs, and tanks.
+                </li>
+                <li>
+                  <strong>Simulation:</strong> Runs hydraulic simulations to
+                  calculate pressure, flow, velocity, and other parameters
+                  throughout the network over time, generating comprehensive
+                  results for analysis and visualization.
+                </li>
+              </ol>
+
+              <h5 class="mt-4">GitHub Repository</h5>
+              <p>
+                HydroFlow is an open-source project. The complete source code is
+                available on GitHub. Contributions, bug reports, and feature
+                requests are welcome!
+              </p>
+              <div class="d-grid gap-2 col-6 mx-auto mt-3">
+                <a
+                  href="https://github.com/yourusername/hydroflow"
+                  target="_blank"
+                  class="btn btn-primary"
+                >
+                  <i class="fab fa-github me-2"></i>View on GitHub
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h4 class="mb-0">EPANET & Hydraulic Modeling</h4>
+            </div>
+            <div class="card-body">
+              <h5>What is EPANET?</h5>
+              <p>
+                EPANET is a public domain water distribution system modeling
+                software package developed by the EPA. It performs
+                extended-period simulation of hydraulic and water quality
+                behavior within pressurized pipe networks.
+              </p>
+
+              <h5 class="mt-4">Key Hydraulic Parameters</h5>
+              <ul>
+                <li>
+                  <strong>Pressure:</strong> Force exerted by water per unit
+                  area, measured in meters or PSI.
+                </li>
+                <li>
+                  <strong>Flow:</strong> Volume of water moving through pipes
+                  per unit time, measured in cubic meters per second (m³/s).
+                </li>
+                <li>
+                  <strong>Velocity:</strong> Speed of water flowing through
+                  pipes, measured in meters per second (m/s).
+                </li>
+                <li>
+                  <strong>Head:</strong> Energy per unit weight of water,
+                  combining elevation and pressure terms.
+                </li>
+                <li>
+                  <strong>Headloss:</strong> Energy lost due to friction as
+                  water flows through pipes.
+                </li>
+              </ul>
+
+              <h5 class="mt-4">Network Components</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Nodes</h6>
+                  <ul>
+                    <li>
+                      <strong>Junctions:</strong> Connection points between
+                      pipes where water enters or leaves the network.
+                    </li>
+                    <li>
+                      <strong>Reservoirs:</strong> Infinite external sources of
+                      water with constant head.
+                    </li>
+                    <li>
+                      <strong>Tanks:</strong> Storage facilities with variable
+                      volume over time.
+                    </li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h6>Links</h6>
+                  <ul>
+                    <li>
+                      <strong>Pipes:</strong> Transport water between nodes with
+                      headloss due to friction.
+                    </li>
+                    <li>
+                      <strong>Pumps:</strong> Add energy to the water to
+                      increase head.
+                    </li>
+                    <li>
+                      <strong>Valves:</strong> Control flow or pressure in the
+                      network.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-light py-4 mt-5">
+      <div class="container text-center">
+        <p class="mb-0">HydroFlow - Water Distribution Modeling &copy; 2025</p>
+        <p class="mb-0 text-muted">
+          Built with <i class="fas fa-heart text-danger"></i> using Flask,
+          EPANET, and open data
+        </p>
+      </div>
+    </footer>
+
+    <!-- Scripts -->
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

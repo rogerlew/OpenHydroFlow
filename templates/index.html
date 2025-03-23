@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HydroFlow - Water Distribution Modeling</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Leaflet CSS for maps -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Chart.js for visualizations -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css"
+    />
+
+    <!-- Custom CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+          <i class="fas fa-water me-2"></i>HydroFlow
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link active" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/about">About</a>
+            </li>
+          </ul>
+          <span class="navbar-text">
+            Madison, WI Water Distribution Model
+          </span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+      <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Project Workflow</h5>
+            </div>
+            <div class="card-body">
+              <div class="workflow-steps">
+                <div class="step" id="step-data-collection">
+                  <div class="step-number">1</div>
+                  <div class="step-content">
+                    <h5>Data Collection</h5>
+                    <p>Gather water infrastructure data from Madison, WI.</p>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      id="btn-collect-data"
+                    >
+                      <i class="fas fa-download me-1"></i> Collect Data
+                    </button>
+                  </div>
+                </div>
+
+                <div class="step disabled" id="step-data-processing">
+                  <div class="step-number">2</div>
+                  <div class="step-content">
+                    <h5>Data Processing</h5>
+                    <p>Clean and prepare data for modeling.</p>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      id="btn-process-data"
+                      disabled
+                    >
+                      <i class="fas fa-cogs me-1"></i> Process Data
+                    </button>
+                  </div>
+                </div>
+
+                <div class="step disabled" id="step-network-modeling">
+                  <div class="step-number">3</div>
+                  <div class="step-content">
+                    <h5>Network Modeling</h5>
+                    <p>Build EPANET water distribution model.</p>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      id="btn-build-network"
+                      disabled
+                    >
+                      <i class="fas fa-project-diagram me-1"></i> Build Network
+                    </button>
+                  </div>
+                </div>
+
+                <div class="step disabled" id="step-simulation">
+                  <div class="step-number">4</div>
+                  <div class="step-content">
+                    <h5>Simulation</h5>
+                    <p>Run hydraulic simulation on the network.</p>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      id="btn-run-simulation"
+                      disabled
+                    >
+                      <i class="fas fa-play me-1"></i> Run Simulation
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Simulation Settings</h5>
+            </div>
+            <div class="card-body">
+              <form id="simulation-settings-form">
+                <div class="mb-3">
+                  <label for="duration" class="form-label"
+                    >Duration (hours)</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="duration"
+                    value="24"
+                    min="1"
+                    max="168"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="time-step" class="form-label"
+                    >Time Step (hours)</label
+                  >
+                  <select class="form-select" id="time-step">
+                    <option value="0.5">30 minutes</option>
+                    <option value="1" selected>1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="6">6 hours</option>
+                  </select>
+                </div>
+                <div class="form-check mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="demand-pattern"
+                  />
+                  <label class="form-check-label" for="demand-pattern">
+                    Apply Daily Demand Pattern
+                  </label>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="col-md-9">
+          <div class="card mb-4">
+            <div
+              class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0">Network Visualization</h5>
+              <div class="btn-group">
+                <button
+                  class="btn btn-sm btn-outline-light"
+                  id="btn-view-map"
+                  disabled
+                >
+                  <i class="fas fa-map me-1"></i> Map View
+                </button>
+                <button
+                  class="btn btn-sm btn-outline-light"
+                  id="btn-view-schematic"
+                  disabled
+                >
+                  <i class="fas fa-project-diagram me-1"></i> Schematic View
+                </button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div id="map-container" style="height: 500px">
+                <div id="network-map" style="height: 100%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <!-- Results Tabs -->
+            <div class="col-12">
+              <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                  <ul
+                    class="nav nav-tabs card-header-tabs"
+                    id="results-tabs"
+                    role="tablist"
+                  >
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link active"
+                        id="network-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#network-panel"
+                        type="button"
+                        role="tab"
+                        aria-controls="network-panel"
+                        aria-selected="true"
+                      >
+                        Network Stats
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link"
+                        id="results-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#results-panel"
+                        type="button"
+                        role="tab"
+                        aria-controls="results-panel"
+                        aria-selected="false"
+                      >
+                        Simulation Results
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link"
+                        id="time-series-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#time-series-panel"
+                        type="button"
+                        role="tab"
+                        aria-controls="time-series-panel"
+                        aria-selected="false"
+                      >
+                        Time Series
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+                <div class="card-body">
+                  <div class="tab-content" id="results-tab-content">
+                    <!-- Network Statistics Panel -->
+                    <div
+                      class="tab-pane fade show active"
+                      id="network-panel"
+                      role="tabpanel"
+                      aria-labelledby="network-tab"
+                    >
+                      <div class="row" id="network-stats-container">
+                        <div class="col-md-6">
+                          <div class="card mb-3">
+                            <div class="card-header">Network Components</div>
+                            <div class="card-body">
+                              <canvas id="network-components-chart"></canvas>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="card mb-3">
+                            <div class="card-header">
+                              Pipe Diameter Distribution
+                            </div>
+                            <div class="card-body">
+                              <canvas id="pipe-diameter-chart"></canvas>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="card mb-3">
+                            <div class="card-header">
+                              Pipe Length Distribution
+                            </div>
+                            <div class="card-body">
+                              <canvas id="pipe-length-chart"></canvas>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="card mb-3">
+                            <div class="card-header">
+                              Junction Elevation Distribution
+                            </div>
+                            <div class="card-body">
+                              <canvas id="junction-elevation-chart"></canvas>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Simulation Results Panel -->
+                    <div
+                      class="tab-pane fade"
+                      id="results-panel"
+                      role="tabpanel"
+                      aria-labelledby="results-tab"
+                    >
+                      <div class="row" id="simulation-results-container">
+                        <div class="col-md-6">
+                          <div class="card mb-3">
+                            <div class="card-header">Pressure Results</div>
+                            <div class="card-body">
+                              <div class="card-text">
+                                <div class="row">
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label"
+                                        >Min Pressure</span
+                                      >
+                                      <span class="stat-value" id="min-pressure"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m</span>
+                                    </div>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label"
+                                        >Avg Pressure</span
+                                      >
+                                      <span class="stat-value" id="avg-pressure"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m</span>
+                                    </div>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label"
+                                        >Max Pressure</span
+                                      >
+                                      <span class="stat-value" id="max-pressure"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="card mb-3">
+                            <div class="card-header">Flow Results</div>
+                            <div class="card-body">
+                              <div class="card-text">
+                                <div class="row">
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label">Min Flow</span>
+                                      <span class="stat-value" id="min-flow"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m³/s</span>
+                                    </div>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label">Avg Flow</span>
+                                      <span class="stat-value" id="avg-flow"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m³/s</span>
+                                    </div>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label">Max Flow</span>
+                                      <span class="stat-value" id="max-flow"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m³/s</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="card mb-3">
+                            <div class="card-header">Velocity Results</div>
+                            <div class="card-body">
+                              <div class="card-text">
+                                <div class="row">
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label"
+                                        >Min Velocity</span
+                                      >
+                                      <span class="stat-value" id="min-velocity"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m/s</span>
+                                    </div>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label"
+                                        >Avg Velocity</span
+                                      >
+                                      <span class="stat-value" id="avg-velocity"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m/s</span>
+                                    </div>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <div class="result-stat">
+                                      <span class="stat-label"
+                                        >Max Velocity</span
+                                      >
+                                      <span class="stat-value" id="max-velocity"
+                                        >-</span
+                                      >
+                                      <span class="stat-unit">m/s</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="card mb-3">
+                            <div class="card-header">Simulation Summary</div>
+                            <div class="card-body">
+                              <div class="card-text">
+                                <div class="result-summary">
+                                  <p>
+                                    <strong>Duration:</strong>
+                                    <span id="simulation-duration">-</span>
+                                    hours
+                                  </p>
+                                  <p>
+                                    <strong>Time Step:</strong>
+                                    <span id="simulation-timestep">-</span>
+                                    hours
+                                  </p>
+                                  <p>
+                                    <strong>Total Demand:</strong>
+                                    <span id="total-demand">-</span> m³/s
+                                  </p>
+                                  <p>
+                                    <strong>Status:</strong>
+                                    <span
+                                      id="simulation-status"
+                                      class="badge bg-success"
+                                      >Completed</span
+                                    >
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Time Series Panel -->
+                    <div
+                      class="tab-pane fade"
+                      id="time-series-panel"
+                      role="tabpanel"
+                      aria-labelledby="time-series-tab"
+                    >
+                      <div class="row">
+                        <div class="col-md-6 mb-3">
+                          <div class="card">
+                            <div class="card-header">Junction Pressures</div>
+                            <div class="card-body">
+                              <canvas id="pressure-chart"></canvas>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                          <div class="card">
+                            <div class="card-header">Pipe Flows</div>
+                            <div class="card-body">
+                              <canvas id="flow-chart"></canvas>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                          <div class="card">
+                            <div class="card-header">Pipe Velocities</div>
+                            <div class="card-body">
+                              <canvas id="velocity-chart"></canvas>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                          <div class="card">
+                            <div class="card-header">Time Controls</div>
+                            <div class="card-body">
+                              <div class="mb-3">
+                                <label for="time-slider" class="form-label"
+                                  >Time:
+                                  <span id="current-time">0:00</span></label
+                                >
+                                <input
+                                  type="range"
+                                  class="form-range"
+                                  id="time-slider"
+                                  min="0"
+                                  max="23"
+                                  value="0"
+                                />
+                              </div>
+                              <div class="d-flex justify-content-center">
+                                <div class="btn-group">
+                                  <button
+                                    class="btn btn-primary"
+                                    id="btn-time-prev"
+                                  >
+                                    <i class="fas fa-step-backward"></i>
+                                  </button>
+                                  <button
+                                    class="btn btn-primary"
+                                    id="btn-time-play"
+                                  >
+                                    <i class="fas fa-play"></i>
+                                  </button>
+                                  <button
+                                    class="btn btn-primary"
+                                    id="btn-time-next"
+                                  >
+                                    <i class="fas fa-step-forward"></i>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Spinner Modal -->
+    <div
+      class="modal fade"
+      id="loading-modal"
+      tabindex="-1"
+      aria-labelledby="loading-modal-label"
+      aria-hidden="true"
+      data-bs-backdrop="static"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body text-center p-5">
+            <div
+              class="spinner-border text-primary mb-3"
+              role="status"
+              style="width: 3rem; height: 3rem"
+            >
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5 id="loading-message">Processing...</h5>
+            <div class="progress mt-3">
+              <div
+                id="loading-progress"
+                class="progress-bar progress-bar-striped progress-bar-animated"
+                role="progressbar"
+                style="width: 0%"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div
+        id="app-toast"
+        class="toast"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <div class="toast-header">
+          <i class="fas fa-info-circle me-2 text-primary"></i>
+          <strong class="me-auto" id="toast-title">Notification</strong>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="toast"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="toast-body" id="toast-message">
+          This is a notification message.
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Leaflet JS for maps -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  </body>
+</html>

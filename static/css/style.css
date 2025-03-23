@@ -1,0 +1,232 @@
+/* Main Styles for HydroFlow - Water Distribution Modeling */
+
+/* General Styles */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  font-weight: 600;
+}
+
+/* Workflow Steps */
+.workflow-steps {
+  position: relative;
+}
+
+.workflow-steps:before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background-color: #dee2e6;
+  z-index: 1;
+}
+
+.step {
+  position: relative;
+  padding-left: 60px;
+  margin-bottom: 20px;
+  z-index: 2;
+}
+
+.step-number {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  background-color: #0d6efd;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.step.disabled .step-number {
+  background-color: #6c757d;
+}
+
+.step.completed .step-number {
+  background-color: #198754;
+}
+
+.step.active .step-number {
+  background-color: #0d6efd;
+  transform: scale(1.1);
+}
+
+.step-content {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.step.disabled .step-content {
+  opacity: 0.7;
+}
+
+/* Map Styles */
+#network-map {
+  background-color: #eee;
+  border-radius: 0 0 4px 4px;
+}
+
+/* Result Stats */
+.result-stat {
+  text-align: center;
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #0d6efd;
+  margin-bottom: 5px;
+}
+
+.stat-unit {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+/* Result Summary */
+.result-summary p {
+  margin-bottom: 8px;
+}
+
+/* Network Legend */
+.network-legend {
+  background-color: white;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.legend-color {
+  width: 15px;
+  height: 15px;
+  margin-right: 5px;
+  border-radius: 3px;
+}
+
+/* Tab Content */
+.tab-content {
+  padding-top: 20px;
+}
+
+/* Custom styles for cards */
+.card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: none;
+}
+
+.card-header {
+  font-weight: 600;
+}
+
+/* Custom styles for buttons */
+.btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+/* Time slider controls */
+.form-range::-webkit-slider-thumb {
+  background: #0d6efd;
+}
+
+.form-range::-moz-range-thumb {
+  background: #0d6efd;
+}
+
+/* Map popup styles */
+.leaflet-popup-content {
+  font-size: 0.9rem;
+}
+
+.leaflet-popup-content .popup-title {
+  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 5px;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 5px;
+}
+
+.leaflet-popup-content .popup-property {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.leaflet-popup-content .popup-key {
+  font-weight: 600;
+  color: #6c757d;
+}
+
+/* Animation for active elements */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse-animation {
+  animation: pulse 1.5s infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .workflow-steps:before {
+    left: 15px;
+  }
+
+  .step {
+    padding-left: 45px;
+  }
+
+  .step-number {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
+
+  .stat-value {
+    font-size: 1.2rem;
+  }
+}
