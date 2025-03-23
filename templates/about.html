@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>About HydroFlow - Water Distribution Modeling</title>
+    <title>About OpenHydroFlow - Water Distribution Modeling</title>
 
     <!-- Bootstrap CSS -->
     <link
@@ -28,7 +28,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container-fluid">
         <a class="navbar-brand" href="/">
-          <i class="fas fa-water me-2"></i>HydroFlow
+          <i class="fas fa-water me-2"></i>OpenHydroFlow
         </a>
         <button
           class="navbar-toggler"
@@ -63,22 +63,22 @@
         <div class="col-lg-8 mx-auto">
           <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-              <h4 class="mb-0">About HydroFlow</h4>
+              <h4 class="mb-0">About OpenHydroFlow</h4>
             </div>
             <div class="card-body">
               <h5>Overview</h5>
               <p>
-                HydroFlow is an open-source web application for water
-                distribution network modeling using EPANET. It provides a
-                user-friendly interface for creating, analyzing, and visualizing
-                water distribution systems.
+                OpenHydroFlow is an open-source web application for water
+                distribution network modeling using EPANET principles. It
+                provides a user-friendly interface for creating, analyzing, and
+                visualizing water distribution systems.
               </p>
 
               <h5 class="mt-4">Features</h5>
               <ul>
                 <li>Automated data collection from open-source APIs</li>
                 <li>Integration with Madison, WI water infrastructure data</li>
-                <li>EPANET-based hydraulic modeling</li>
+                <li>Advanced hydraulic modeling based on EPANET principles</li>
                 <li>Interactive network visualization</li>
                 <li>Time series analysis of simulation results</li>
                 <li>Scenario comparison and analysis</li>
@@ -89,9 +89,9 @@
                 <div class="col-md-6">
                   <h6>Backend</h6>
                   <ul>
-                    <li>Python</li>
+                    <li>Python 3.12+</li>
                     <li>Flask</li>
-                    <li>WNTR (Water Network Tool for Resilience)</li>
+                    <li>NetworkX</li>
                     <li>GeoPandas</li>
                     <li>NumPy/Pandas</li>
                   </ul>
@@ -109,7 +109,7 @@
               </div>
 
               <h5 class="mt-4">Data Sources</h5>
-              <p>HydroFlow uses the following open data sources:</p>
+              <p>OpenHydroFlow uses the following open data sources:</p>
               <ul>
                 <li>City of Madison, WI Open Data Portal</li>
                 <li>USGS National Water Information System</li>
@@ -118,7 +118,7 @@
               </ul>
 
               <h5 class="mt-4">How It Works</h5>
-              <p>HydroFlow follows a four-step workflow:</p>
+              <p>OpenHydroFlow follows a four-step workflow:</p>
               <ol>
                 <li>
                   <strong>Data Collection:</strong> Gathers water infrastructure
@@ -132,7 +132,7 @@
                   network connectivity.
                 </li>
                 <li>
-                  <strong>Network Modeling:</strong> Creates an EPANET water
+                  <strong>Network Modeling:</strong> Creates a water
                   distribution model with all necessary components including
                   pipes, junctions, reservoirs, and tanks.
                 </li>
@@ -144,15 +144,32 @@
                 </li>
               </ol>
 
+              <h5 class="mt-4">Hydraulic Modeling Approach</h5>
+              <p>
+                OpenHydroFlow provides two methods for hydraulic simulation:
+              </p>
+              <ol>
+                <li>
+                  <strong>EPANET Command-line Tool:</strong> The application
+                  automatically downloads and configures the EPANET command-line
+                  tool for accurate hydraulic simulations.
+                </li>
+                <li>
+                  <strong>Built-in Simulator:</strong> A simplified hydraulic
+                  calculator is included as a fallback when the EPANET
+                  command-line tool is not available.
+                </li>
+              </ol>
+
               <h5 class="mt-4">GitHub Repository</h5>
               <p>
-                HydroFlow is an open-source project. The complete source code is
-                available on GitHub. Contributions, bug reports, and feature
-                requests are welcome!
+                OpenHydroFlow is an open-source project. The complete source
+                code is available on GitHub. Contributions, bug reports, and
+                feature requests are welcome!
               </p>
               <div class="d-grid gap-2 col-6 mx-auto mt-3">
                 <a
-                  href="https://github.com/yourusername/hydroflow"
+                  href="https://github.com/SouravDSGit/OpenHydroFlow"
                   target="_blank"
                   class="btn btn-primary"
                 >
@@ -164,14 +181,14 @@
 
           <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-              <h4 class="mb-0">EPANET & Hydraulic Modeling</h4>
+              <h4 class="mb-0">Hydraulic Modeling Principles</h4>
             </div>
             <div class="card-body">
-              <h5>What is EPANET?</h5>
+              <h5>EPANET Framework</h5>
               <p>
-                EPANET is a public domain water distribution system modeling
-                software package developed by the EPA. It performs
-                extended-period simulation of hydraulic and water quality
+                OpenHydroFlow is based on the principles developed in EPANET, a
+                public domain water distribution system modeling software
+                package. It performs extended-period simulation of hydraulic
                 behavior within pressurized pipe networks.
               </p>
 
@@ -236,6 +253,31 @@
                   </ul>
                 </div>
               </div>
+
+              <h5 class="mt-4">Simulation Principles</h5>
+              <p>
+                The hydraulic simulation in OpenHydroFlow is based on the
+                following principles:
+              </p>
+              <ul>
+                <li>
+                  <strong>Mass Conservation:</strong> The flow into a junction
+                  equals the flow out of that junction.
+                </li>
+                <li>
+                  <strong>Energy Conservation:</strong> The total energy (head)
+                  loss in any loop must equal zero.
+                </li>
+                <li>
+                  <strong>Headloss Calculation:</strong> Uses the Hazen-Williams
+                  formula to calculate headloss due to friction in pipes.
+                </li>
+                <li>
+                  <strong>Extended Period Simulation:</strong> Models changes in
+                  the system over time, based on varying demands and control
+                  settings.
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -245,7 +287,9 @@
     <!-- Footer -->
     <footer class="bg-light py-4 mt-5">
       <div class="container text-center">
-        <p class="mb-0">HydroFlow - Water Distribution Modeling &copy; 2025</p>
+        <p class="mb-0">
+          OpenHydroFlow - Water Distribution Modeling &copy; 2025
+        </p>
         <p class="mb-0 text-muted">
           Built with <i class="fas fa-heart text-danger"></i> using Flask,
           EPANET, and open data

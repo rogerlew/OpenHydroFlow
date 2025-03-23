@@ -1,6 +1,7 @@
 """
 Flask application for EPANET Water Distribution Model
 """
+
 import os
 import json
 import logging
@@ -18,17 +19,21 @@ from src.data_processing import DataProcessor
 from src.network_model import NetworkBuilder
 from src.simulation import EPANETSimulator
 from src.visualization import NetworkVisualizer
-from src.epanet_util import setup_epanet
 
-# Try to set up EPANET if possible
+# Try to import and set up EPANET if possible
 try:
+    from src.epanet_util import setup_epanet
     setup_epanet()
+    logger.info("EPANET command-line tool setup successful")
+except ImportError:
+    logger.warning("EPANET utility module not found. Hydraulic simulations will use simplified calculations")
 except Exception as e:
     logger.warning(f"Could not set up EPANET: {e}")
     logger.warning("Hydraulic simulations will use simplified calculations")
 
 # Initialize Flask app
 app = Flask(__name__)
+
 # Data paths
 RAW_DATA_DIR = Path("data/raw")
 PROCESSED_DATA_DIR = Path("data/processed")
@@ -151,7 +156,7 @@ def process_data():
 
 @app.route('/build-network', methods=['POST'])
 def build_network():
-    """API endpoint to build EPANET network model"""
+    """API endpoint to build network model"""
     try:
         # Get optional parameters from request
         params = request.get_json() or {}
@@ -167,7 +172,7 @@ def build_network():
             }), 400
         
         # Build network model
-        logger.info("Building EPANET network model")
+        logger.info("Building network model")
         network = network_builder.build_from_gis(
             mains_file=PROCESSED_DATA_DIR / "processed_water_mains.geojson",
             hydrants_file=PROCESSED_DATA_DIR / "processed_hydrants.geojson" if (PROCESSED_DATA_DIR / "processed_hydrants.geojson").exists() else None,
@@ -181,8 +186,9 @@ def build_network():
             }), 500
         
         # Save network to file
+        model_file = OUTPUT_DATA_DIR / "network_model.json"
         inp_file = OUTPUT_DATA_DIR / "madison_network.inp"
-        network_builder.save_network(network, inp_file)
+        network_builder.save_network(network, model_file)
         
         # Generate network statistics
         stats = network_builder.get_network_stats(network)
@@ -191,7 +197,8 @@ def build_network():
             'status': 'success',
             'message': 'Network model built successfully',
             'stats': stats,
-            'inp_file': str(inp_file)
+            'inp_file': str(inp_file),
+            'model_file': str(model_file)
         })
     
     except Exception as e:
@@ -203,7 +210,7 @@ def build_network():
 
 @app.route('/run-simulation', methods=['POST'])
 def run_simulation():
-    """API endpoint to run EPANET simulation"""
+    """API endpoint to run hydraulic simulation"""
     global current_simulation
     
     try:
@@ -221,7 +228,7 @@ def run_simulation():
             }), 400
         
         # Run simulation
-        logger.info(f"Running EPANET simulation for {duration} hours")
+        logger.info(f"Running hydraulic simulation for {duration} hours")
         results = simulator.run_simulation(
             inp_file=inp_file,
             duration_hours=duration,
@@ -466,6 +473,43 @@ def download_file(filename):
             'message': f'Error: {str(e)}'
         }), 500
 
+"""
+Fixed version of the API status endpoint for app.py
+"""
+
+@app.route('/api/status', methods=['GET'])
+def api_status():
+    """API endpoint to check application status"""
+    try:
+        # Check if EPANET executable exists
+        epanet_installed = False
+        try:
+            from src.epanet_util import EPANET_PATH
+            epanet_installed = EPANET_PATH.exists()
+        except:
+            pass
+
+        # Use file existence to determine status
+        status = {
+            'application': 'HydroFlow',
+            'status': 'running',
+            'data_collected': any(RAW_DATA_DIR.iterdir()) if RAW_DATA_DIR.exists() else False,
+            'data_processed': any(PROCESSED_DATA_DIR.iterdir()) if PROCESSED_DATA_DIR.exists() else False,
+            'network_built': (OUTPUT_DATA_DIR / "madison_network.inp").exists(),
+            'simulation_run': (OUTPUT_DATA_DIR / "simulation_results.json").exists() or current_simulation is not None,
+            'epanet_installed': epanet_installed,
+            'hydraulic_engine': 'EPANET CLI' if epanet_installed else 'Built-in Simplified Model'
+        }
+        
+        return jsonify(status)
+    
+    except Exception as e:
+        logger.error(f"Error checking application status: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Error: {str(e)}'
+        }), 500
+        
 if __name__ == '__main__':
     # Run the Flask application in debug mode
     app.run(debug=True, host='0.0.0.0', port=5000)

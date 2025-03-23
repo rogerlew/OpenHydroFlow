@@ -1,6 +1,6 @@
 """
 Visualization module for water distribution modeling.
-Handles creating visualizations and GeoJSON for web display.
+Direct implementation without relying on WNTR.
 """
 
 import os
@@ -9,7 +9,6 @@ import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import wntr
 import geopandas as gpd
 from shapely.geometry import Point, LineString
 
@@ -39,180 +38,265 @@ class NetworkVisualizer:
         Returns:
             dict: GeoJSON representation of the network
         """
-        logger.info(f"Creating GeoJSON representation of network from {inp_file}...")
+        logger.info(f"Creating GeoJSON representation of network from {inp_file}")
         
         try:
-            # Load the water network model
-            wn = wntr.network.WaterNetworkModel(str(inp_file))
+            # Try to load network model JSON file first (if it exists)
+            model_file = Path(str(inp_file).replace('.inp', '.json'))
+            if model_file.exists():
+                return self._create_geojson_from_model_file(model_file)
             
-            # Create GeoJSON features for nodes
+            # Otherwise parse the INP file directly
+            return self._create_geojson_from_inp_file(inp_file)
+        
+        except Exception as e:
+            logger.error(f"Error creating GeoJSON representation: {e}")
+            return None
+    
+    def _create_geojson_from_model_file(self, model_file):
+        """
+        Create GeoJSON representation from a network model JSON file
+        
+        Args:
+            model_file (str or Path): Path to network model JSON file
+        
+        Returns:
+            dict: GeoJSON representation of the network
+        """
+        logger.info(f"Creating GeoJSON from model file: {model_file}")
+        
+        try:
+            # Load the network model
+            with open(model_file, 'r') as f:
+                network_model = json.load(f)
+            
+            # Initialize GeoJSON collections
             node_features = []
+            link_features = []
+            
+            # Process nodes
+            for node in network_model.get('nodes', []):
+                # Skip if no coordinates
+                if 'x' not in node or 'y' not in node:
+                    continue
+                
+                # Create GeoJSON geometry
+                geometry = {
+                    'type': 'Point',
+                    'coordinates': [node['x'], node['y']]
+                }
+                
+                # Create feature properties
+                properties = {k: v for k, v in node.items() if k not in ['x', 'y']}
+                
+                # Create feature
+                feature = {
+                    'type': 'Feature',
+                    'geometry': geometry,
+                    'properties': properties
+                }
+                
+                node_features.append(feature)
+            
+            # Process edges
+            for edge in network_model.get('edges', []):
+                # Skip if missing source or target
+                if 'source' not in edge or 'target' not in edge:
+                    continue
+                
+                # Find source and target nodes
+                source_node = None
+                target_node = None
+                
+                for node in network_model.get('nodes', []):
+                    if 'id' in node:
+                        if node['id'] == edge['source']:
+                            source_node = node
+                        elif node['id'] == edge['target']:
+                            target_node = node
+                
+                # Skip if nodes not found
+                if source_node is None or target_node is None:
+                    continue
+                
+                # Create GeoJSON geometry
+                geometry = {
+                    'type': 'LineString',
+                    'coordinates': [
+                        [source_node['x'], source_node['y']],
+                        [target_node['x'], target_node['y']]
+                    ]
+                }
+                
+                # Create feature properties
+                properties = {k: v for k, v in edge.items() if k not in ['source', 'target']}
+                properties['start_node'] = edge['source']
+                properties['end_node'] = edge['target']
+                
+                # Create feature
+                feature = {
+                    'type': 'Feature',
+                    'geometry': geometry,
+                    'properties': properties
+                }
+                
+                link_features.append(feature)
+            
+            # Combine all features
+            geojson = {
+                'nodes': {
+                    'type': 'FeatureCollection',
+                    'features': node_features
+                },
+                'links': {
+                    'type': 'FeatureCollection',
+                    'features': link_features
+                }
+            }
+            
+            # Save GeoJSON to file
+            output_file = OUTPUT_DATA_DIR / "network.geojson"
+            with open(output_file, 'w') as f:
+                json.dump(geojson, f, indent=2)
+            
+            logger.info(f"GeoJSON representation saved to {output_file}")
+            return geojson
+            
+        except Exception as e:
+            logger.error(f"Error creating GeoJSON from model file: {e}")
+            return None
+    
+    def _create_geojson_from_inp_file(self, inp_file):
+        """
+        Create GeoJSON representation by parsing an EPANET INP file
+        
+        Args:
+            inp_file (str or Path): Path to EPANET INP file
+        
+        Returns:
+            dict: GeoJSON representation of the network
+        """
+        logger.info(f"Creating GeoJSON from INP file: {inp_file}")
+        
+        try:
+            # Parse the INP file
+            network = self._parse_inp_file(inp_file)
+            
+            # Initialize GeoJSON collections
+            node_features = []
+            link_features = []
             
             # Process junctions
-            for junction_name in wn.junction_name_list:
-                junction = wn.get_node(junction_name)
-                coords = junction.coordinates
+            for junction in network.get('junctions', []):
+                # Skip if no coordinates
+                if 'x' not in junction or 'y' not in junction:
+                    continue
                 
+                # Create GeoJSON feature for junction
                 feature = {
                     'type': 'Feature',
                     'geometry': {
                         'type': 'Point',
-                        'coordinates': [coords[0], coords[1]]
+                        'coordinates': [junction['x'], junction['y']]
                     },
                     'properties': {
-                        'id': junction_name,
+                        'id': junction['id'],
                         'type': 'junction',
-                        'elevation': junction.elevation,
-                        'base_demand': junction.base_demand,
-                        'name': junction.name if hasattr(junction, 'name') else junction_name
+                        'elevation': junction.get('elevation', 0.0),
+                        'demand': junction.get('demand', 0.0),
+                        'name': junction.get('name', junction['id'])
                     }
                 }
                 
                 node_features.append(feature)
             
             # Process reservoirs
-            for reservoir_name in wn.reservoir_name_list:
-                reservoir = wn.get_node(reservoir_name)
-                coords = reservoir.coordinates
+            for reservoir in network.get('reservoirs', []):
+                # Skip if no coordinates
+                if 'x' not in reservoir or 'y' not in reservoir:
+                    continue
                 
+                # Create GeoJSON feature for reservoir
                 feature = {
                     'type': 'Feature',
                     'geometry': {
                         'type': 'Point',
-                        'coordinates': [coords[0], coords[1]]
+                        'coordinates': [reservoir['x'], reservoir['y']]
                     },
                     'properties': {
-                        'id': reservoir_name,
+                        'id': reservoir['id'],
                         'type': 'reservoir',
-                        'base_head': reservoir.base_head,
-                        'name': reservoir.name if hasattr(reservoir, 'name') else reservoir_name
+                        'head': reservoir.get('head', 0.0),
+                        'name': reservoir.get('name', reservoir['id'])
                     }
                 }
                 
                 node_features.append(feature)
             
             # Process tanks
-            for tank_name in wn.tank_name_list:
-                tank = wn.get_node(tank_name)
-                coords = tank.coordinates
+            for tank in network.get('tanks', []):
+                # Skip if no coordinates
+                if 'x' not in tank or 'y' not in tank:
+                    continue
                 
+                # Create GeoJSON feature for tank
                 feature = {
                     'type': 'Feature',
                     'geometry': {
                         'type': 'Point',
-                        'coordinates': [coords[0], coords[1]]
+                        'coordinates': [tank['x'], tank['y']]
                     },
                     'properties': {
-                        'id': tank_name,
+                        'id': tank['id'],
                         'type': 'tank',
-                        'elevation': tank.elevation,
-                        'init_level': tank.init_level,
-                        'min_level': tank.min_level,
-                        'max_level': tank.max_level,
-                        'diameter': tank.diameter,
-                        'name': tank.name if hasattr(tank, 'name') else tank_name
+                        'elevation': tank.get('elevation', 0.0),
+                        'init_level': tank.get('init_level', 0.0),
+                        'min_level': tank.get('min_level', 0.0),
+                        'max_level': tank.get('max_level', 0.0),
+                        'diameter': tank.get('diameter', 0.0),
+                        'name': tank.get('name', tank['id'])
                     }
                 }
                 
                 node_features.append(feature)
             
-            # Create GeoJSON features for links
-            link_features = []
-            
             # Process pipes
-            for pipe_name in wn.pipe_name_list:
-                pipe = wn.get_link(pipe_name)
+            for pipe in network.get('pipes', []):
+                # Find source and target nodes
+                source_node = None
+                target_node = None
                 
-                # Get the start and end node coordinates
-                start_node = wn.get_node(pipe.start_node_name)
-                end_node = wn.get_node(pipe.end_node_name)
+                for node in node_features:
+                    if node['properties']['id'] == pipe['node1']:
+                        source_node = node
+                    elif node['properties']['id'] == pipe['node2']:
+                        target_node = node
                 
-                start_coords = start_node.coordinates
-                end_coords = end_node.coordinates
+                # Skip if nodes not found
+                if source_node is None or target_node is None:
+                    continue
                 
+                # Get coordinates
+                source_coords = source_node['geometry']['coordinates']
+                target_coords = target_node['geometry']['coordinates']
+                
+                # Create GeoJSON feature for pipe
                 feature = {
                     'type': 'Feature',
                     'geometry': {
                         'type': 'LineString',
-                        'coordinates': [
-                            [start_coords[0], start_coords[1]],
-                            [end_coords[0], end_coords[1]]
-                        ]
+                        'coordinates': [source_coords, target_coords]
                     },
                     'properties': {
-                        'id': pipe_name,
+                        'id': pipe['id'],
                         'type': 'pipe',
-                        'length': pipe.length,
-                        'diameter': pipe.diameter,
-                        'roughness': pipe.roughness,
-                        'status': str(pipe.status),
-                        'start_node': pipe.start_node_name,
-                        'end_node': pipe.end_node_name,
-                        'name': pipe.name if hasattr(pipe, 'name') else pipe_name
-                    }
-                }
-                
-                link_features.append(feature)
-            
-            # Process pumps
-            for pump_name in wn.pump_name_list:
-                pump = wn.get_link(pump_name)
-                
-                # Get the start and end node coordinates
-                start_node = wn.get_node(pump.start_node_name)
-                end_node = wn.get_node(pump.end_node_name)
-                
-                start_coords = start_node.coordinates
-                end_coords = end_node.coordinates
-                
-                feature = {
-                    'type': 'Feature',
-                    'geometry': {
-                        'type': 'LineString',
-                        'coordinates': [
-                            [start_coords[0], start_coords[1]],
-                            [end_coords[0], end_coords[1]]
-                        ]
-                    },
-                    'properties': {
-                        'id': pump_name,
-                        'type': 'pump',
-                        'start_node': pump.start_node_name,
-                        'end_node': pump.end_node_name,
-                        'name': pump.name if hasattr(pump, 'name') else pump_name
-                    }
-                }
-                
-                link_features.append(feature)
-            
-            # Process valves
-            for valve_name in wn.valve_name_list:
-                valve = wn.get_link(valve_name)
-                
-                # Get the start and end node coordinates
-                start_node = wn.get_node(valve.start_node_name)
-                end_node = wn.get_node(valve.end_node_name)
-                
-                start_coords = start_node.coordinates
-                end_coords = end_node.coordinates
-                
-                feature = {
-                    'type': 'Feature',
-                    'geometry': {
-                        'type': 'LineString',
-                        'coordinates': [
-                            [start_coords[0], start_coords[1]],
-                            [end_coords[0], end_coords[1]]
-                        ]
-                    },
-                    'properties': {
-                        'id': valve_name,
-                        'type': 'valve',
-                        'valve_type': valve.valve_type,
-                        'status': str(valve.status),
-                        'start_node': valve.start_node_name,
-                        'end_node': valve.end_node_name,
-                        'name': valve.name if hasattr(valve, 'name') else valve_name
+                        'length': pipe.get('length', 0.0),
+                        'diameter': pipe.get('diameter', 0.0),
+                        'roughness': pipe.get('roughness', 0.0),
+                        'status': pipe.get('status', 'OPEN'),
+                        'start_node': pipe['node1'],
+                        'end_node': pipe['node2'],
+                        'name': pipe.get('name', pipe['id'])
                     }
                 }
                 
@@ -239,7 +323,123 @@ class NetworkVisualizer:
             return geojson
             
         except Exception as e:
-            logger.error(f"Error creating GeoJSON representation: {e}")
+            logger.error(f"Error creating GeoJSON from INP file: {e}")
+            return None
+    
+    def _parse_inp_file(self, inp_file):
+        """
+        Parse EPANET INP file to extract network structure
+        
+        Args:
+            inp_file (str or Path): Path to EPANET INP file
+        
+        Returns:
+            dict: Dictionary containing network structure
+        """
+        logger.info(f"Parsing EPANET INP file: {inp_file}")
+        
+        try:
+            # Initialize network dictionary
+            network = {
+                'junctions': [],
+                'reservoirs': [],
+                'tanks': [],
+                'pipes': [],
+                'valves': [],
+                'pumps': [],
+                'coordinates': {}  # Store node coordinates
+            }
+            
+            # Read INP file
+            with open(inp_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Parse sections
+            section = None
+            
+            for line in lines:
+                line = line.strip()
+                
+                # Skip empty lines and comments
+                if not line or line.startswith(';'):
+                    continue
+                
+                # Check for section headers
+                if line.startswith('['):
+                    section = line.strip('[]').lower()
+                    continue
+                
+                # Process sections
+                if section == 'junctions':
+                    parts = line.split()
+                    if len(parts) >= 3:
+                        junction = {
+                            'id': parts[0],
+                            'elevation': float(parts[1]),
+                            'demand': float(parts[2]),
+                            'pattern': parts[3] if len(parts) > 3 and not parts[3].startswith(';') else None
+                        }
+                        network['junctions'].append(junction)
+                
+                elif section == 'reservoirs':
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        reservoir = {
+                            'id': parts[0],
+                            'head': float(parts[1]),
+                            'pattern': parts[2] if len(parts) > 2 and not parts[2].startswith(';') else None
+                        }
+                        network['reservoirs'].append(reservoir)
+                
+                elif section == 'tanks':
+                    parts = line.split()
+                    if len(parts) >= 7:
+                        tank = {
+                            'id': parts[0],
+                            'elevation': float(parts[1]),
+                            'init_level': float(parts[2]),
+                            'min_level': float(parts[3]),
+                            'max_level': float(parts[4]),
+                            'diameter': float(parts[5]),
+                            'min_volume': float(parts[6]),
+                            'volume_curve': parts[7] if len(parts) > 7 and not parts[7].startswith(';') else None
+                        }
+                        network['tanks'].append(tank)
+                
+                elif section == 'pipes':
+                    parts = line.split()
+                    if len(parts) >= 8:
+                        pipe = {
+                            'id': parts[0],
+                            'node1': parts[1],
+                            'node2': parts[2],
+                            'length': float(parts[3]),
+                            'diameter': float(parts[4]) / 1000.0,  # Convert from mm to m
+                            'roughness': float(parts[5]),
+                            'minor_loss': float(parts[6]),
+                            'status': parts[7]
+                        }
+                        network['pipes'].append(pipe)
+                
+                elif section == 'coordinates':
+                    parts = line.split()
+                    if len(parts) >= 3:
+                        node_id = parts[0]
+                        x = float(parts[1])
+                        y = float(parts[2])
+                        network['coordinates'][node_id] = {'x': x, 'y': y}
+            
+            # Add coordinates to nodes
+            for node_type in ['junctions', 'reservoirs', 'tanks']:
+                for node in network[node_type]:
+                    if node['id'] in network['coordinates']:
+                        node['x'] = network['coordinates'][node['id']]['x']
+                        node['y'] = network['coordinates'][node['id']]['y']
+            
+            return network
+            
+        except Exception as e:
+            logger.error(f"Error parsing INP file: {e}")
             return None
     
     def create_results_visualization(self, inp_file, results_file, output_file=None):
@@ -257,19 +457,16 @@ class NetworkVisualizer:
         logger.info("Creating visualization data for simulation results...")
         
         try:
-            # Load the water network model
-            wn = wntr.network.WaterNetworkModel(str(inp_file))
-            
-            # Load simulation results
-            with open(results_file, 'r') as f:
-                results = json.load(f)
-            
             # Get network GeoJSON
             network_geojson = self.get_network_geojson(inp_file)
             
             if network_geojson is None:
                 logger.error("Failed to create network GeoJSON")
                 return None
+            
+            # Load simulation results
+            with open(results_file, 'r') as f:
+                results = json.load(f)
             
             # Combine network GeoJSON with simulation results
             visualization_data = {
@@ -308,11 +505,15 @@ class NetworkVisualizer:
         logger.info("Creating network statistics charts...")
         
         try:
-            # Load the water network model
-            wn = wntr.network.WaterNetworkModel(str(inp_file))
+            # Parse INP file
+            network = self._parse_inp_file(inp_file)
+            
+            if network is None:
+                logger.error("Failed to parse INP file")
+                return None
             
             # Calculate pipe diameter distribution
-            pipe_diameters = [wn.get_link(p).diameter * 1000 for p in wn.pipe_name_list]  # Convert to mm
+            pipe_diameters = [pipe['diameter'] * 1000 for pipe in network['pipes']]  # Convert to mm
             
             # Group diameters into ranges
             diameter_ranges = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 1000]
@@ -327,7 +528,7 @@ class NetworkVisualizer:
                         break
             
             # Calculate pipe length distribution
-            pipe_lengths = [wn.get_link(p).length for p in wn.pipe_name_list]
+            pipe_lengths = [pipe['length'] for pipe in network['pipes']]
             
             # Group lengths into ranges (in meters)
             length_ranges = [0, 10, 50, 100, 200, 500, 1000, 5000]
@@ -342,7 +543,7 @@ class NetworkVisualizer:
                         break
             
             # Calculate junction elevation distribution
-            junction_elevations = [wn.get_node(j).elevation for j in wn.junction_name_list]
+            junction_elevations = [junction['elevation'] for junction in network['junctions']]
             
             # Calculate statistics
             elevation_min = min(junction_elevations) if junction_elevations else 0
@@ -392,15 +593,13 @@ class NetworkVisualizer:
                 },
                 'network_summary': {
                     'type': 'pie',
-                    'labels': ['Junctions', 'Pipes', 'Reservoirs', 'Tanks', 'Valves', 'Pumps'],
+                    'labels': ['Junctions', 'Pipes', 'Reservoirs', 'Tanks'],
                     'datasets': [{
                         'data': [
-                            len(wn.junction_name_list),
-                            len(wn.pipe_name_list),
-                            len(wn.reservoir_name_list),
-                            len(wn.tank_name_list),
-                            len(wn.valve_name_list),
-                            len(wn.pump_name_list)
+                            len(network['junctions']),
+                            len(network['pipes']),
+                            len(network['reservoirs']),
+                            len(network['tanks'])
                         ]
                     }],
                     'title': 'Network Components'

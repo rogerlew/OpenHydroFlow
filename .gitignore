@@ -8,6 +8,9 @@ venv/
 env/
 ENV/
 
+# EPANET SETUP
+epanet/
+
 # Distribution / packaging
 dist/
 build/
