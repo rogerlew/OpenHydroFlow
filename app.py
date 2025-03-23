@@ -65,10 +65,12 @@ def about():
 
 @app.route('/collect-data', methods=['POST'])
 def collect_data():
-    """API endpoint to collect water distribution data"""
     try:
-        # Get optional parameters from request
-        params = request.get_json() or {}
+        # Get optional parameters from request, but don't fail if JSON is missing
+        try:
+            params = request.get_json() or {}
+        except Exception:
+            params = {}
         
         # Check if data already exists to avoid re-downloading
         if RAW_DATA_DIR.exists() and any(RAW_DATA_DIR.iterdir()):
@@ -476,6 +478,10 @@ def download_file(filename):
 """
 Fixed version of the API status endpoint for app.py
 """
+@app.route('/api/check-data', methods=['GET'])
+def check_data():
+    """API endpoint to check if data exists"""
+    return api_status()  # Reuse the existing status endpoint
 
 @app.route('/api/status', methods=['GET'])
 def api_status():

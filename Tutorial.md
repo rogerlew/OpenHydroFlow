@@ -1,10 +1,10 @@
-# HydroFlow: Water Distribution Modeling Tutorial
+# OpenHydroFlow: Water Distribution Modeling Tutorial
 
-I'll walk you through how HydroFlow works for water distribution modeling using EPANET principles. This tutorial will focus on the hydraulic modeling aspects rather than software development.
+I'll walk you through how OpenHydroFlow works for water distribution modeling using EPANET principles. This tutorial will focus on the hydraulic modeling aspects rather than software development.
 
 ## Project Overview
 
-HydroFlow is a water distribution modeling application that simulates how water flows through a municipal pipe network. It models pipes, junctions, tanks, reservoirs, and other components to predict pressure, flow rates, and water quality throughout a system.
+OpenHydroFlow is a water distribution modeling application that simulates how water flows through a municipal pipe network. It models pipes, junctions, tanks, reservoirs, and other components to predict pressure, flow rates, and water quality throughout a system.
 
 ## Core Workflow
 
@@ -173,4 +173,4 @@ Let's walk through a practical example of what happens in the model:
 
 5. Results show that during peak demand (e.g., 7-9 AM), pressure might drop to 40m in this area, while during low demand (e.g., 2 AM), it might rise to 55m.
 
-This is how HydroFlow provides insights into water distribution systems without requiring the original WNTR library, while still maintaining the essential principles of hydraulic network modeling.
+This is how OpenHydroFlow provides insights into water distribution systems without requiring the original WNTR library, while still maintaining the essential principles of hydraulic network modeling.
