@@ -1,4 +1,4 @@
-# HydroFlow - Water Distribution Modeling Application Dependencies
+# OpenHydroFlow - Water Distribution Modeling Application Dependencies
 # Compatible with Python 3.12.3
 
 # Setup dependencies (install these first)
