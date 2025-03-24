@@ -173,4 +173,4 @@ Let's walk through a practical example of what happens in the model:
 
 5. Results show that during peak demand (e.g., 7-9 AM), pressure might drop to 40m in this area, while during low demand (e.g., 2 AM), it might rise to 55m.
 
-This is how OpenHydroFlow provides insights into water distribution systems without requiring the original WNTR library, while still maintaining the essential principles of hydraulic network modeling.
+This is how OpenHydroFlow provides insights into water distribution systems while maintaining the essential principles of hydraulic network modeling.

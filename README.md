@@ -2,7 +2,7 @@
 
 HydroFlow is a web-based application for modeling and visualizing water distribution networks using EPANET hydraulic concepts. The application provides a comprehensive solution for creating, analyzing, and visualizing water distribution systems with an intuitive user interface.
 
-![HydroFlow Screenshot](screenshot.png)
+![HydroFlow Screenshot](images/openhyroflow.png)
 
 ## Features
 
