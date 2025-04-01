@@ -1,8 +1,8 @@
-# HydroFlow - Water Distribution Modeling Application
+# OpenHydroFlow - Water Distribution Modeling Application
 
-HydroFlow is a web-based application for modeling and visualizing water distribution networks using EPANET hydraulic concepts. The application provides a comprehensive solution for creating, analyzing, and visualizing water distribution systems with an intuitive user interface.
+OpenHydroFlow is a web-based application for modeling and visualizing water distribution networks using EPANET hydraulic concepts. The application provides a comprehensive solution for creating, analyzing, and visualizing water distribution systems with an intuitive user interface.
 
-![HydroFlow Screenshot](images/openhyroflow.png)
+![OpenHydroFlow Screenshot](images/openhyroflow.png)
 
 ## Features
 
@@ -35,7 +35,7 @@ HydroFlow is a web-based application for modeling and visualizing water distribu
 ## Project Structure
 
 ```
-hydroflow/
+openhydroflow/
 │
 ├── app.py                     # Flask application entry point
 ├── setup.sh                   # Setup script for Linux/Mac
@@ -88,8 +88,8 @@ hydroflow/
 1. Clone the repository:
 
    ```
-   git clone https://github.com/yourusername/hydroflow.git
-   cd hydroflow
+   git clone https://github.com/SouravDSGit/OpenHydroFlow
+   cd openhydroflow
    ```
 
 2. Run the setup script:
@@ -118,8 +118,8 @@ hydroflow/
 1. Clone the repository:
 
    ```
-   git clone https://github.com/yourusername/hydroflow.git
-   cd hydroflow
+   git clone https://github.com/SouravDSGit/OpenHydroFlow
+   cd OpenHydroFlow
    ```
 
 2. Create a virtual environment and activate it:
@@ -167,7 +167,7 @@ hydroflow/
 
 ## Data Sources
 
-HydroFlow uses the following open data sources:
+OpenHydroFlow uses the following open data sources:
 
 - City of Madison, WI Open Data Portal
 - USGS National Water Information System
@@ -176,7 +176,7 @@ HydroFlow uses the following open data sources:
 
 ## Hydraulic Modeling
 
-HydroFlow provides two methods for hydraulic simulation:
+OpenHydroFlow provides two methods for hydraulic simulation:
 
 1. **EPANET Command-line Tool**: The application automatically downloads and configures the EPANET command-line tool for accurate hydraulic simulations.
 
@@ -184,7 +184,7 @@ HydroFlow provides two methods for hydraulic simulation:
 
 ## Workflow
 
-HydroFlow follows a four-step workflow:
+OpenHydroFlow follows a four-step workflow:
 
 1. **Data Collection**: Gather water infrastructure GIS data, elevation data, water quality data, and monitoring station data from various APIs.
 2. **Data Processing**: Clean and transform the collected data into a format suitable for hydraulic modeling.
