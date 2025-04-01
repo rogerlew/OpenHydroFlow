@@ -1,6 +1,9 @@
 """
 Data collection module for water distribution modeling.
 Handles fetching data from various APIs and sources for Madison, WI.
+The open data API documentation is available here 
+https://data-cityofmadison.opendata.arcgis.com/datasets/cityofmadison::water-main-breaks/about
+For API go here: https://data-cityofmadison.opendata.arcgis.com/datasets/cityofmadison::water-main-breaks/api
 """
 
 import os
@@ -51,83 +54,90 @@ class DataCollector:
     def fetch_madison_water_gis(self):
         """
         Fetch Madison, WI water infrastructure GIS data from the city's open data portal
-        Implements retry and error handling
         """
         logger.info("Fetching Madison water infrastructure GIS data...")
         
-        # Updated URLs with fallbacks
-        water_mains_urls = [
-            "https://data-cityofmadison.opendata.arcgis.com/datasets/cityofmadison::water-mains.geojson",
-            "https://data-cityofmadison.opendata.arcgis.com/datasets/water-mains.geojson",
-            "https://data-cityofmadison.opendata.arcgis.com/api/download/v1/items/water-mains/geojson"
-        ]
-        
-        hydrants_urls = [
-            "https://data-cityofmadison.opendata.arcgis.com/datasets/cityofmadison::fire-hydrants.geojson",
-            "https://data-cityofmadison.opendata.arcgis.com/datasets/fire-hydrants.geojson",
-            "https://data-cityofmadison.opendata.arcgis.com/api/download/v1/items/fire-hydrants/geojson"
-        ]
-        
-        pressure_zones_urls = [
-            "https://data-cityofmadison.opendata.arcgis.com/datasets/cityofmadison::water-pressure-zones.geojson",
-            "https://data-cityofmadison.opendata.arcgis.com/datasets/water-pressure-zones.geojson",
-            "https://data-cityofmadison.opendata.arcgis.com/api/download/v1/items/water-pressure-zones/geojson"
-        ]
+        # Request fields that align with the data processing pipeline expectations
+        water_main_breaks_url = "https://maps.cityofmadison.com/arcgis/rest/services/Public/OPEN_DATA/MapServer/5/query?outFields=OBJECTID,pipe_type,pipe_mslink,pipe_size,MainID,AssetNumber,FacilityID,pipe_depth_ft&where=1%3D1&f=geojson"
         
         results = {}
         
-        # Try to download water mains with fallbacks
-        for url in water_mains_urls:
-            try:
-                logger.info(f"Trying to download water mains from: {url}")
-                water_mains = gpd.read_file(url)
+        # Try to download water main breaks data
+        try:
+            logger.info(f"Downloading water main breaks from: {water_main_breaks_url}")
+            
+            # Directly use geopandas to read the GeoJSON URL
+            water_mains = gpd.read_file(water_main_breaks_url)
+            
+            if not water_mains.empty:
+                # Map field names to what the pipeline expects
+                if 'pipe_size' in water_mains.columns:
+                    water_mains['diameter_mm'] = water_mains['pipe_size'] * 25.4  # Convert inches to mm if needed
+                
+                # Add required fields that might be missing
+                if 'length_m' not in water_mains.columns:
+                    # Approximate length from geometry if available
+                    try:
+                        # Create a temporary projected version for accurate measurements
+                        water_mains_proj = water_mains.to_crs("EPSG:3857")  # Web Mercator
+                        water_mains['length_m'] = water_mains_proj.geometry.length
+                    except Exception:
+                        # Default length if calculation fails
+                        water_mains['length_m'] = 100.0
+                
+                # Add roughness coefficient based on pipe_type if available
+                if 'roughness' not in water_mains.columns:
+                    water_mains['roughness'] = 100.0  # Default roughness
+                    
+                    # Map pipe types to roughness values if pipe_type exists
+                    if 'pipe_type' in water_mains.columns:
+                        pipe_type_map = {
+                            'CAST IRON': 100.0,
+                            'DUCTILE IRON': 140.0,
+                            'PVC': 150.0,
+                            'HDPE': 150.0,
+                            'CONCRETE': 120.0,
+                            'STEEL': 135.0
+                        }
+                        # Apply mapping where possible
+                        for pipe_type, roughness in pipe_type_map.items():
+                            mask = water_mains['pipe_type'].str.contains(pipe_type, case=False, na=False)
+                            water_mains.loc[mask, 'roughness'] = roughness
+                
+                # Save to file
                 water_mains.to_file(RAW_DATA_DIR / "madison_water_mains.geojson", driver="GeoJSON")
                 results["water_mains"] = water_mains
-                logger.info("Water mains data downloaded successfully.")
-                break
-            except Exception as e:
-                logger.warning(f"Failed to download water mains from {url}: {e}")
+                logger.info(f"Successfully downloaded {len(water_mains)} water main records")
+            else:
+                logger.warning("Received empty dataset for water mains")
+        except Exception as e:
+            logger.warning(f"Failed to download water mains: {e}")
         
-        # Try to download hydrants with fallbacks
-        for url in hydrants_urls:
-            try:
-                logger.info(f"Trying to download hydrants from: {url}")
-                hydrants = gpd.read_file(url)
-                hydrants.to_file(RAW_DATA_DIR / "madison_hydrants.geojson", driver="GeoJSON")
-                results["hydrants"] = hydrants
-                logger.info("Hydrants data downloaded successfully.")
-                break
-            except Exception as e:
-                logger.warning(f"Failed to download hydrants from {url}: {e}")
+        # Fallback to sample data if needed
+        if "water_mains" not in results:
+            logger.warning("Falling back to sample data for water mains")
+            sample_data = self._create_sample_gis_data()
+            if "water_mains" in sample_data:
+                results["water_mains"] = sample_data["water_mains"]
+                results["water_mains"].to_file(RAW_DATA_DIR / "madison_water_mains.geojson", driver="GeoJSON")
+                logger.info(f"Created {len(results['water_mains'])} sample water main records")
         
-        # Try to download pressure zones with fallbacks
-        for url in pressure_zones_urls:
-            try:
-                logger.info(f"Trying to download pressure zones from: {url}")
-                pressure_zones = gpd.read_file(url)
-                pressure_zones.to_file(RAW_DATA_DIR / "madison_pressure_zones.geojson", driver="GeoJSON")
-                results["pressure_zones"] = pressure_zones
-                logger.info("Pressure zones data downloaded successfully.")
-                break
-            except Exception as e:
-                logger.warning(f"Failed to download pressure zones from {url}: {e}")
+        # Similarly use sample data for hydrants and pressure zones for now
+        sample_data = self._create_sample_gis_data()
         
-        # If all attempts fail, try to create sample data
-        if not results:
-            logger.warning("All Madison GIS data downloads failed. Attempting to create sample data.")
-            try:
-                results = self._create_sample_gis_data()
-                logger.info("Created sample GIS data as fallback.")
-            except Exception as e:
-                logger.error(f"Failed to create sample GIS data: {e}")
+        if "hydrants" not in results:
+            results["hydrants"] = sample_data["hydrants"]
+            results["hydrants"].to_file(RAW_DATA_DIR / "madison_hydrants.geojson", driver="GeoJSON")
+            logger.info(f"Using sample data for hydrants: {len(results['hydrants'])} records")
         
-        if not results:
-            logger.error("Failed to download or create any Madison GIS data.")
-            return None
+        if "pressure_zones" not in results:
+            results["pressure_zones"] = sample_data["pressure_zones"]
+            results["pressure_zones"].to_file(RAW_DATA_DIR / "madison_pressure_zones.geojson", driver="GeoJSON")
+            logger.info(f"Using sample data for pressure zones: {len(results['pressure_zones'])} records")
         
         logger.info(f"Madison GIS data available: {', '.join(results.keys())}")
         return results
-    
+        
     def _create_sample_gis_data(self):
         """
         Create sample GIS data as a fallback when real data cannot be downloaded

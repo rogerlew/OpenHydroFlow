@@ -1,4 +1,5 @@
 """
+src/network_model.py
 Network model module for water distribution modeling.
 Direct implementation of EPANET functionality without relying on WNTR.
 """

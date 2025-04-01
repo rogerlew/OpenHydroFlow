@@ -1,0 +1,15 @@
+{
+"type": "FeatureCollection",
+"name": "madison_hydrants",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": "H0", "status": "Active" }, "geometry": { "type": "Point", "coordinates": [ -89.4412, 43.0331 ] } },
+{ "type": "Feature", "properties": { "id": "H1", "status": "Active" }, "geometry": { "type": "Point", "coordinates": [ -89.4162, 43.0331 ] } },
+{ "type": "Feature", "properties": { "id": "H2", "status": "Active" }, "geometry": { "type": "Point", "coordinates": [ -89.3912, 43.0331 ] } },
+{ "type": "Feature", "properties": { "id": "H3", "status": "Active" }, "geometry": { "type": "Point", "coordinates": [ -89.3662, 43.0331 ] } },
+{ "type": "Feature", "properties": { "id": "H4", "status": "Active" }, "geometry": { "type": "Point", "coordinates": [ -89.4412, 43.0581 ] } },
+{ "type": "Feature", "properties": { "id": "H5", "status": "Active" }, "geometry": { "type": "Point", "coordinates": [ -89.4162, 43.0581 ] } },
+{ "type": "Feature", "properties": { "id": "H6", "status": "Active" }, "geometry": { "type": "Point", "coordinates": [ -89.3912, 43.0581 ] } },
+{ "type": "Feature", "properties": { "id": "H7", "status": "Active" }, "geometry": { "type": "Point", "coordinates": [ -89.3662, 43.0581 ] } }
+]
+}

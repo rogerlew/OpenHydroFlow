@@ -1,6 +1,7 @@
 """
 Visualization module for water distribution modeling.
 Direct implementation without relying on WNTR.
+src/visualization.py
 """
 
 import os
