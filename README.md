@@ -35,7 +35,7 @@ OpenHydroFlow is a web-based application for modeling and visualizing water dist
 ## Project Structure
 
 ```
-openhydroflow/
+OpenHydroFlow/
 │
 ├── app.py                     # Flask application entry point
 ├── setup.sh                   # Setup script for Linux/Mac
