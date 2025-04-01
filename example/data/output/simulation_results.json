@@ -1,0 +1,31 @@
+{
+  "time_steps": [],
+  "nodes": {
+    "pressure": {},
+    "head": {},
+    "demand": {}
+  },
+  "links": {
+    "flow": {},
+    "velocity": {},
+    "headloss": {}
+  },
+  "stats": {
+    "duration_hours": 0,
+    "pressure": {
+      "min": null,
+      "max": null,
+      "avg": null
+    },
+    "flow": {
+      "min": null,
+      "max": null,
+      "avg": null
+    },
+    "velocity": {
+      "min": null,
+      "max": null,
+      "avg": null
+    }
+  }
+}

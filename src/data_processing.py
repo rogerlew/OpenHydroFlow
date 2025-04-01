@@ -15,7 +15,6 @@ import rasterio
 from rasterio.mask import mask
 from shapely.geometry import Point, LineString
 import networkx as nx
-
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -61,12 +60,13 @@ class DataProcessor:
                 return None
             
             water_mains = gpd.read_file(water_mains_path)
-            
+            print(water_mains.columns)
             # Initial data exploration
             logger.info(f"Original water mains data: {len(water_mains)} rows")
             
-            # Ensure coordinate reference system is consistent (use EPSG:4326 - WGS84)
-            if water_mains.crs != "EPSG:4326":
+            # Ensure coordinate reference system is consistent with the CRS84 specified in the original file
+            # CRS84 is equivalent to EPSG:4326 with lon/lat order
+            if water_mains.crs.name != "WGS 84":
                 water_mains = water_mains.to_crs("EPSG:4326")
             
             # Clean data
@@ -76,36 +76,26 @@ class DataProcessor:
             # 2. Ensure all geometries are LineStrings
             water_mains = water_mains[water_mains.geometry.type == "LineString"]
             
-            # 3. Calculate pipe length in meters if not already present
+            # 3. Ensure diameter and length are present
+            # These are already present in the sample data, but adding checks for robustness
+            if 'diameter_mm' not in water_mains.columns:
+                # Use a default method if diameter is missing
+                water_mains['diameter_mm'] = 100  # Default to 100mm
+                logger.warning("No diameter information found. Using default 100mm.")
+            
             if 'length_m' not in water_mains.columns:
-                # Create a temporary GeoDataFrame in a projected CRS for accurate measurements
+                # Calculate length in a projected CRS
                 water_mains_proj = water_mains.to_crs("EPSG:3857")  # Web Mercator projection
                 water_mains['length_m'] = water_mains_proj.geometry.length
+                logger.info("Calculated pipe lengths using Web Mercator projection.")
             
-            # 4. Extract diameter information
-            if 'diameter' not in water_mains.columns and 'PIPE_SIZE' in water_mains.columns:
-                # Extract numeric diameter values from the PIPE_SIZE column
-                water_mains['diameter_in'] = water_mains['PIPE_SIZE'].apply(
-                    lambda x: float(re.search(r'(\d+(?:\.\d+)?)', str(x)).group(1)) 
-                    if isinstance(x, str) and re.search(r'(\d+(?:\.\d+)?)', str(x)) 
-                    else np.nan
-                )
-                # Convert inches to mm for consistency
-                water_mains['diameter_mm'] = water_mains['diameter_in'] * 25.4
+            # 4. Ensure roughness is present
+            if 'roughness' not in water_mains.columns:
+                # Use a default roughness or calculate based on a method
+                water_mains['roughness'] = 100  # Default Hazen-Williams C coefficient
+                logger.warning("No roughness information found. Using default C=100.")
             
-            # 5. Handle other important attributes for water modeling
-            # Material type
-            if 'material' not in water_mains.columns and 'PIPE_MATERIAL' in water_mains.columns:
-                water_mains['material'] = water_mains['PIPE_MATERIAL']
-            
-            # Installation year
-            if 'year_installed' not in water_mains.columns and 'INSTALL_YEAR' in water_mains.columns:
-                water_mains['year_installed'] = pd.to_numeric(water_mains['INSTALL_YEAR'], errors='coerce')
-            
-            # 6. Assign pipe roughness coefficients based on material and age
-            water_mains['roughness'] = self._assign_pipe_roughness(water_mains)
-            
-            # 7. Subset to area of interest if provided
+            # 5. Subset to area of interest if provided
             if subset_area is not None:
                 # Ensure subset_area is in the same CRS
                 if subset_area.crs != water_mains.crs:
@@ -114,18 +104,22 @@ class DataProcessor:
                 # Spatial subset
                 water_mains = gpd.overlay(water_mains, subset_area, how='intersection')
             
-            # 8. Create unique ID for each pipe if not already present
+            # 6. Create unique ID for each pipe if not already present
             if 'pipe_id' not in water_mains.columns:
-                water_mains['pipe_id'] = [f'p{i}' for i in range(1, len(water_mains) + 1)]
+                # Use the existing 'id' column if present, otherwise generate new IDs
+                if 'id' in water_mains.columns:
+                    water_mains['pipe_id'] = water_mains['id']
+                else:
+                    water_mains['pipe_id'] = [f'p{i}' for i in range(1, len(water_mains) + 1)]
             
-            # 9. Extract start and end points for each pipe
+            # 7. Extract start and end points for each pipe
             # These will become junctions in the EPANET model
             water_mains['start_point'] = water_mains.geometry.apply(lambda x: Point(x.coords[0]))
             water_mains['end_point'] = water_mains.geometry.apply(lambda x: Point(x.coords[-1]))
             
-            # 10. Save processed data
+            # 8. Save processed data
             output_path = PROCESSED_DATA_DIR / "processed_water_mains.geojson"
-            water_mains.to_file(output_path, driver="GeoJSON")
+            water_mains.to_parquet(output_path, driver="GeoJSON")
             
             logger.info(f"Water mains data processed: {len(water_mains)} valid pipes")
             return water_mains
@@ -133,7 +127,7 @@ class DataProcessor:
         except Exception as e:
             logger.error(f"Error processing water mains data: {e}")
             return None
-    
+
     def _assign_pipe_roughness(self, water_mains):
         """
         Assign Hazen-Williams roughness coefficients based on pipe material and age
@@ -146,12 +140,15 @@ class DataProcessor:
         """
         # Default roughness value (cast iron, older)
         default_roughness = 100
-        
+
         # Initialize roughness series with default value
         roughness = pd.Series(default_roughness, index=water_mains.index)
-        
+
+        # Check if 'material' column exists
+        if 'material' not in water_mains.columns:
+            return roughness  # Return default roughness if material column is missing
+
         # Define roughness coefficients by material and condition
-        # Using Hazen-Williams C coefficients
         material_roughness = {
             'CAST IRON': 100,
             'CAST IRON (CIP)': 100,
@@ -164,43 +161,40 @@ class DataProcessor:
             'COPPER': 135,
             'GALVANIZED IRON': 120
         }
-        
+
         # Adjust for pipe age if year_installed is available
         current_year = 2024
-        
+
         for material, base_c in material_roughness.items():
             # Find pipes of this material (case insensitive)
             mask = water_mains['material'].str.upper().str.contains(material, na=False)
-            
+
             if mask.any():
                 # Set base roughness for this material
                 roughness[mask] = base_c
-                
-                # Adjust for age if data is available
+
+                # Adjust for age if 'year_installed' column is available
                 if 'year_installed' in water_mains.columns:
-                    # Calculate age
                     age_mask = mask & (~water_mains['year_installed'].isna())
-                    
+
                     if age_mask.any():
                         ages = current_year - water_mains.loc[age_mask, 'year_installed']
-                        
+
                         # Decrease roughness with age (simplistic model)
-                        # Very old pipes (>70 years) get significant reduction
                         very_old = ages > 70
                         if very_old.any():
-                            roughness.loc[age_mask & very_old] = roughness.loc[age_mask & very_old] * 0.7
-                        
-                        # Older pipes (40-70 years) get moderate reduction
+                            roughness.loc[age_mask & very_old] *= 0.7
+
                         older = (ages > 40) & (ages <= 70)
                         if older.any():
-                            roughness.loc[age_mask & older] = roughness.loc[age_mask & older] * 0.85
-                        
-                        # Middle-aged pipes (20-40 years) get slight reduction
+                            roughness.loc[age_mask & older] *= 0.85
+
                         middle = (ages > 20) & (ages <= 40)
                         if middle.any():
-                            roughness.loc[age_mask & middle] = roughness.loc[age_mask & middle] * 0.95
-        
+                            roughness.loc[age_mask & middle] *= 0.95
+
         return roughness
+
     
     def process_hydrants(self):
         """

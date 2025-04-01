@@ -58,7 +58,7 @@ class DataCollector:
         logger.info("Fetching Madison water infrastructure GIS data...")
         
         # Request fields that align with the data processing pipeline expectations
-        water_main_breaks_url = "https://maps.cityofmadison.com/arcgis/rest/services/Public/OPEN_DATA/MapServer/5/query?outFields=OBJECTID,pipe_type,pipe_mslink,pipe_size,MainID,AssetNumber,FacilityID,pipe_depth_ft&where=1%3D1&f=geojson"
+        water_main_breaks_url = "https://maps.cityofmadison.com/arcgis/rest/services/Public/OPEN_DATA/MapServer/5/query?outFields=OBJECTID,pipe_type,materials_used,pipe_mslink,pipe_size,MainID,AssetNumber,FacilityID,pipe_depth_ft&where=1%3D1&f=geojson"
         
         results = {}
         
@@ -85,13 +85,13 @@ class DataCollector:
                         # Default length if calculation fails
                         water_mains['length_m'] = 100.0
                 
-                # Add roughness coefficient based on pipe_type if available
+                # Add roughness coefficient based on material if available
                 if 'roughness' not in water_mains.columns:
                     water_mains['roughness'] = 100.0  # Default roughness
                     
-                    # Map pipe types to roughness values if pipe_type exists
-                    if 'pipe_type' in water_mains.columns:
-                        pipe_type_map = {
+                    # Map pipe types to roughness values if material exists
+                    if 'materials_used' in water_mains.columns:
+                        material_map = {
                             'CAST IRON': 100.0,
                             'DUCTILE IRON': 140.0,
                             'PVC': 150.0,
@@ -100,8 +100,8 @@ class DataCollector:
                             'STEEL': 135.0
                         }
                         # Apply mapping where possible
-                        for pipe_type, roughness in pipe_type_map.items():
-                            mask = water_mains['pipe_type'].str.contains(pipe_type, case=False, na=False)
+                        for material, roughness in material_map.items():
+                            mask = water_mains['materials_used'].str.contains(material, case=False, na=False)
                             water_mains.loc[mask, 'roughness'] = roughness
                 
                 # Save to file
@@ -140,18 +140,23 @@ class DataCollector:
         
     def _create_sample_gis_data(self):
         """
-        Create sample GIS data as a fallback when real data cannot be downloaded
-        
+        Create sample GIS data as a fallback when real data cannot be downloaded.
+
         Returns:
             dict: Dictionary of sample GeoDataFrames
         """
         logger.info("Creating sample GIS data for Madison, WI...")
-        
+
+        # Ensure raw data directory exists
+        RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
         # Center of Madison, WI
         center_x, center_y = -89.4012, 43.0731
-        
+
         # Create sample water mains (lines)
         lines = []
+        materials = ['CAST IRON', 'DUCTILE IRON', 'PVC', 'STEEL']
+        
         for i in range(10):
             # Create a grid of lines
             x1 = center_x - 0.05 + (i % 3) * 0.025
@@ -159,18 +164,22 @@ class DataCollector:
             x2 = x1 + 0.02
             y2 = y1 + 0.02
             lines.append(LineString([(x1, y1), (x2, y2)]))
-        
+
         water_mains = gpd.GeoDataFrame(
             {
                 'id': [f'M{i}' for i in range(len(lines))],
                 'diameter_mm': [100 + i * 50 for i in range(len(lines))],
                 'length_m': [1000 + i * 100 for i in range(len(lines))],
-                'roughness': [100 for _ in range(len(lines))]
+                'roughness': [100 for _ in range(len(lines))],
+                'material': [materials[i % len(materials)] for i in range(len(lines))],  # Material column added
+                'year_installed': [1990 + (i * 5) for i in range(len(lines))]
             },
             geometry=lines,
             crs='EPSG:4326'
         )
+
         water_mains.to_file(RAW_DATA_DIR / "madison_water_mains.geojson", driver="GeoJSON")
+
         
         # Create sample hydrants (points)
         points = []
@@ -200,7 +209,7 @@ class DataCollector:
             x_max = x_min + 0.06
             y_max = y_min + 0.12
             polygons.append(Polygon([
-                (x_min, y_min), (x_max, y_min), 
+                (x_min, y_min), (x_max, y_min),
                 (x_max, y_max), (x_min, y_max), (x_min, y_min)
             ]))
         
@@ -215,12 +224,57 @@ class DataCollector:
         )
         pressure_zones.to_file(RAW_DATA_DIR / "madison_pressure_zones.geojson", driver="GeoJSON")
         
+        # Create sample elevation raster
+        try:
+            import rasterio
+            from rasterio.transform import from_origin
+            import numpy as np
+            
+            # Create a sample elevation raster
+            # Define raster properties
+            width, height = 100, 100
+            pixel_size = 0.001  # Approximately 100m resolution
+            
+            # Create an elevation grid with some variation
+            elevation_grid = np.random.normal(
+                loc=250,  # Mean elevation around 250m
+                scale=50,  # Some variation
+                size=(height, width)
+            )
+            
+            # Define the transformation (top-left corner coordinates)
+            transform = from_origin(
+                center_x - (width * pixel_size / 2), 
+                center_y + (height * pixel_size / 2), 
+                pixel_size, 
+                pixel_size
+            )
+            
+            # Create the raster file
+            elevation_path = RAW_DATA_DIR / "madison_elevation.tif"
+            with rasterio.open(
+                elevation_path, 
+                'w', 
+                driver='GTiff', 
+                height=height, 
+                width=width, 
+                count=1, 
+                dtype=elevation_grid.dtype, 
+                crs='EPSG:4326', 
+                transform=transform
+            ) as dst:
+                dst.write(elevation_grid, 1)
+            
+            logger.info(f"Sample elevation raster created at {elevation_path}")
+        except Exception as e:
+            logger.error(f"Failed to create elevation raster: {e}")
+        
         return {
             "water_mains": water_mains,
             "hydrants": hydrants,
             "pressure_zones": pressure_zones
         }
-    
+        
     def fetch_usgs_water_data(self, days=30):
         """
         Fetch USGS water data for streams and groundwater in the Madison area
