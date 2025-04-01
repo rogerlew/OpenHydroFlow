@@ -89,7 +89,7 @@ OpenHydroFlow/
 
    ```
    git clone https://github.com/SouravDSGit/OpenHydroFlow
-   cd openhydroflow
+   cd OpenHydroFlow
    ```
 
 2. Run the setup script:
