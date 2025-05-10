@@ -1,0 +1,17 @@
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8060:5000"
+    volumes:
+      - ./src:/app
+    environment:
+      FLASK_APP: app.py
+      FLASK_ENV: development   # or production
+    command: flask run --host=0.0.0.0 --port=5000
+
+volumes:
+  data:

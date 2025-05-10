@@ -21,15 +21,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Constants
-EPANET_DIR = Path("epanet")
-EPANET_DIR.mkdir(exist_ok=True)  # Create directory immediately
 
 # Executable name must match what the simulation.py module expects
 if platform.system() == "Windows":
     EXECUTABLE_NAME = "epanet2.exe"
+    EPANET_DIR = Path("epanet")
+    EPANET_DIR.mkdir(exist_ok=True)  # Create directory immediately
 else:
     EXECUTABLE_NAME = "epanet2"
+    EPANET_DIR = Path("/usr/local/bin/")
+    
 EXECUTABLE_PATH = EPANET_DIR / EXECUTABLE_NAME
 
 # EPANET direct download URLs

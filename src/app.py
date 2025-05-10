@@ -14,22 +14,11 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 # Import project modules
-from src.data_collection import DataCollector
-from src.data_processing import DataProcessor
-from src.network_model import NetworkBuilder
-from src.simulation import EPANETSimulator
-from src.visualization import NetworkVisualizer
-
-# Try to import and set up EPANET if possible
-try:
-    from src.epanet_util import setup_epanet
-    setup_epanet()
-    logger.info("EPANET command-line tool setup successful")
-except ImportError:
-    logger.warning("EPANET utility module not found. Hydraulic simulations will use simplified calculations")
-except Exception as e:
-    logger.warning(f"Could not set up EPANET: {e}")
-    logger.warning("Hydraulic simulations will use simplified calculations")
+from .data_collection import DataCollector
+from .data_processing import DataProcessor
+from .network_model import NetworkBuilder
+from .simulation import EPANETSimulator
+from .visualization import NetworkVisualizer
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -38,6 +27,8 @@ app = Flask(__name__)
 RAW_DATA_DIR = Path("data/raw")
 PROCESSED_DATA_DIR = Path("data/processed")
 OUTPUT_DATA_DIR = Path("data/output")
+
+EPANET_PATH = Path('/usr/local/bin/epanet2')
 
 # Create directories if they don't exist
 for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, OUTPUT_DATA_DIR]:
@@ -490,7 +481,6 @@ def api_status():
         # Check if EPANET executable exists
         epanet_installed = False
         try:
-            from src.epanet_util import EPANET_PATH
             epanet_installed = EPANET_PATH.exists()
         except:
             pass
